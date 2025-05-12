@@ -3,6 +3,7 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.android.application)
     id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
+
 }
 
 android {
@@ -23,7 +24,7 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        buildConfigField("String", "API_KEY", "\"${secretProps["API_KEY"]}\"")
+        buildConfigField("String", "API_KEY", "\"${secretProps["MAPS_API_KEY"]}\"")
         
 
     }
@@ -58,9 +59,14 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
-    implementation("com.google.android.gms:play-services-maps:19.0.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
-    implementation("com.google.maps.android:android-maps-utils:2.2.3")
+
+    implementation("com.google.android.gms:play-services-maps:19.0.0")
+    implementation("com.google.maps.android:android-maps-utils:3.8.2")
+    //implementation(platform("org.jetbrains.kotlin:kotlin-bom:$kotlin_version"))
+    implementation("com.google.android.libraries.places:places:3.5.0")
+
+    implementation("com.github.bumptech.glide:glide:4.16.0")
 }
 secrets {
     // To add your Maps API key to this project:
@@ -69,6 +75,8 @@ secrets {
     //        MAPS_API_KEY=YOUR_API_KEY
     propertiesFileName = "secrets.properties"
 
+
     // A properties file containing default secret values. This file can be
     // checked in version control.
+    defaultPropertiesFileName = "local.defaults.properties"
 }
