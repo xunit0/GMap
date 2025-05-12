@@ -29,7 +29,6 @@ import com.google.android.libraries.places.api.Places;
 import com.google.android.libraries.places.api.model.Place;
 import com.google.android.libraries.places.widget.AutocompleteSupportFragment;
 import com.google.android.libraries.places.widget.listener.PlaceSelectionListener;
-import com.google.maps.android.BuildConfig;
 import com.google.maps.android.PolyUtil;
 import com.google.maps.android.SphericalUtil;
 
@@ -86,8 +85,9 @@ public class MainActivity extends AppCompatActivity implements
         mapFragment.getMapAsync(this);
 
 
-        Places.initialize(getApplicationContext(), "AIzaSyBaB50vCT8fFmIq35G6LYW1UGiYv0loKBI");
-
+        Places.initialize(getApplicationContext(), BuildConfig.MAPS_API_KEY);
+        
+       /* AutoComplete Fragment event listeners */
         AutocompleteSupportFragment autocompleteFragment = (AutocompleteSupportFragment)
                 getSupportFragmentManager().findFragmentById(R.id.autocomplete_fragment);
 
@@ -148,8 +148,6 @@ public class MainActivity extends AppCompatActivity implements
         } else {
             Log.e("AutocompleteError", "Autocomplete fragment is null");
         }
-
-
             autocompleteFragment2.setOnPlaceSelectedListener(new PlaceSelectionListener() {
                 @Override
                 public void onPlaceSelected(@NonNull Place place) {
@@ -183,11 +181,6 @@ public class MainActivity extends AppCompatActivity implements
 
             // Optional: Set hint text
             autocompleteFragment.setHint("Search for a place");
-
-
-
-
-
 
 
 
