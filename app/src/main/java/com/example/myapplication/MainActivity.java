@@ -54,17 +54,14 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 
-public class MainActivity extends AppCompatActivity implements
-        OnMapReadyCallback,
-                        GoogleMap.OnPolylineClickListener,
+public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleMap.OnPolylineClickListener,
         GoogleMap.OnPolygonClickListener {
 
     ArrayList<LatLng> mArray = new ArrayList<>();
     GoogleMap map;
-
     String endPoint, startingPoint;
     PolylineOptions currentPolyline;
-    //String apiKey = BuildConfig.API_KEY;
+    String apiKey = BuildConfig.API_KEY;
 
 
     @Override
@@ -223,7 +220,7 @@ public class MainActivity extends AppCompatActivity implements
                 .url(url)
                 .post(body)
                 .addHeader("Content-Type", "application/json")
-                .addHeader("X-Goog-Api-Key", getString(R.string.maps_api_key))
+                .addHeader("X-Goog-Api-Key", BuildConfig.MAPS_API_KEY)
                 .addHeader("X-Goog-FieldMask", "routes.polyline.encodedPolyline")
                 .build();
 
@@ -331,7 +328,7 @@ public class MainActivity extends AppCompatActivity implements
     private void findNearbyGasStations(LatLng location, String label) {
         OkHttpClient client = new OkHttpClient();
 
-        String apiKey = getString(R.string.maps_api_key);
+        String apiKey = BuildConfig.MAPS_API_KEY;
         String url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
                 + "?location=" + location.latitude + "," + location.longitude
                 + "&radius=5000"
