@@ -86,7 +86,7 @@ public class MainActivity extends AppCompatActivity implements
 
 
         Places.initialize(getApplicationContext(), BuildConfig.MAPS_API_KEY);
-        
+
        /* AutoComplete Fragment event listeners */
         AutocompleteSupportFragment autocompleteFragment = (AutocompleteSupportFragment)
                 getSupportFragmentManager().findFragmentById(R.id.autocomplete_fragment);
