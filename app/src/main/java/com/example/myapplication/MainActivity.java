@@ -1,9 +1,12 @@
 package com.example.myapplication;
 
+import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.net.Uri;
 import android.net.http.UrlRequest;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -13,6 +16,11 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.RequestOptions;
+import com.bumptech.glide.request.target.Target;
+import com.example.myapplication.databinding.ActivityMainBinding;
+import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.common.api.Status;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -21,12 +29,22 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polygon;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.libraries.places.api.Places;
+import com.google.android.libraries.places.api.model.AuthorAttributions;
+import com.google.android.libraries.places.api.model.PhotoMetadata;
 import com.google.android.libraries.places.api.model.Place;
+import com.google.android.libraries.places.api.net.FetchPlaceRequest;
+import com.google.android.libraries.places.api.net.FetchPlaceResponse;
+import com.google.android.libraries.places.api.net.FetchResolvedPhotoUriRequest;
+import com.google.android.libraries.places.api.net.FetchResolvedPhotoUriResponse;
+import com.google.android.libraries.places.api.net.PlacesClient;
 import com.google.android.libraries.places.widget.AutocompleteSupportFragment;
 import com.google.android.libraries.places.widget.listener.PlaceSelectionListener;
 import com.google.maps.android.PolyUtil;
@@ -42,6 +60,7 @@ import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
@@ -55,20 +74,26 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleMap.OnPolylineClickListener,
-        GoogleMap.OnPolygonClickListener {
+        GoogleMap.OnPolygonClickListener, GoogleMap.OnMarkerClickListener {
 
     ArrayList<LatLng> mArray = new ArrayList<>();
     GoogleMap map;
+    ActivityMainBinding binding;
     String endPoint, startingPoint;
     PolylineOptions currentPolyline;
     String apiKey = BuildConfig.API_KEY;
+    PlacesClient placesClient;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
-        setContentView(R.layout.activity_main);
+        binding = ActivityMainBinding.inflate(getLayoutInflater());
+        View view = binding.getRoot();
+
+        setContentView(view);
+
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
@@ -82,9 +107,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mapFragment.getMapAsync(this);
 
 
-        Places.initialize(getApplicationContext(), BuildConfig.MAPS_API_KEY);
 
-       /* AutoComplete Fragment event listeners */
+        /* Initializations */
+        Places.initializeWithNewPlacesApiEnabled(getApplicationContext(), BuildConfig.MAPS_API_KEY);
+        placesClient = Places.createClient(this);
+
+
+
+        /* AutoComplete Fragment event listeners */
         AutocompleteSupportFragment autocompleteFragment = (AutocompleteSupportFragment)
                 getSupportFragmentManager().findFragmentById(R.id.autocomplete_fragment);
 
@@ -99,40 +129,40 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         } else {
             Log.e("AutocompleteError", "Autocomplete fragment is null");
         }
-            // Set up a PlaceSelectionListener to handle the response
-            autocompleteFragment.setOnPlaceSelectedListener(new PlaceSelectionListener() {
-                @Override
-                public void onPlaceSelected(@NonNull Place place) {
-                    try {
-                        // Get info about the selected place
-                        Log.i("PlaceSelected", "Place: " + place.getName() + ", " + place.getId());
+        // Set up a PlaceSelectionListener to handle the response
+        autocompleteFragment.setOnPlaceSelectedListener(new PlaceSelectionListener() {
+            @Override
+            public void onPlaceSelected(@NonNull Place place) {
+                try {
+                    // Get info about the selected place
+                    Log.i("PlaceSelected", "Place: " + place.getName() + ", " + place.getId());
 
-                        // If you need to move the map to the selected place
-                        if (place.getLocation() != null && map != null) {
-                            map.animateCamera(CameraUpdateFactory.newLatLngZoom(
-                                    place.getLocation(), 15f));
-                            map.addMarker(new MarkerOptions().position(place.getLocation()));
-
-                            startingPoint = place.getId();
-                            checkAndFetchRoute();
-                        }
-                    } catch (Exception e) {
-                        Log.e("PlaceError", "Error processing selected place", e);
+                    // If you need to move the map to the selected place
+                    if (place.getLocation() != null && map != null) {
+                        map.animateCamera(CameraUpdateFactory.newLatLngZoom(
+                                place.getLocation(), 15f));
+                        Marker marker = map.addMarker(new MarkerOptions().position(place.getLocation()));
+                        marker.setTag(place.getId());
+                        startingPoint = place.getId();
+                        checkAndFetchRoute();
                     }
+                } catch (Exception e) {
+                    Log.e("PlaceError", "Error processing selected place", e);
                 }
+            }
 
-                @Override
-                public void onError(@NonNull Status status) {
-                    // Handle the error properly
-                    Log.e("PlaceError", "An error occurred: " + status);
-                    Toast.makeText(MainActivity.this,
-                            "Place selection failed: " + status.getStatusMessage(),
-                            Toast.LENGTH_SHORT).show();
-                }
-            });
+            @Override
+            public void onError(@NonNull Status status) {
+                // Handle the error properly
+                Log.e("PlaceError", "An error occurred: " + status);
+                Toast.makeText(MainActivity.this,
+                        "Place selection failed: " + status.getStatusMessage(),
+                        Toast.LENGTH_SHORT).show();
+            }
+        });
 
-            AutocompleteSupportFragment autocompleteFragment2 = (AutocompleteSupportFragment)
-                    getSupportFragmentManager().findFragmentById(R.id.autocomplete_fragment2);
+        AutocompleteSupportFragment autocompleteFragment2 = (AutocompleteSupportFragment)
+                getSupportFragmentManager().findFragmentById(R.id.autocomplete_fragment2);
 
         if (autocompleteFragment2 != null) {
             // Specify the types of place data to return - Include more fields for better results
@@ -145,41 +175,41 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         } else {
             Log.e("AutocompleteError", "Autocomplete fragment is null");
         }
-            autocompleteFragment2.setOnPlaceSelectedListener(new PlaceSelectionListener() {
-                @Override
-                public void onPlaceSelected(@NonNull Place place) {
-                    try {
-                        // Get info about the selected place
-                        Log.i("PlaceSelected", "Place: " + place.getName() + ", " + place.getId());
+        autocompleteFragment2.setOnPlaceSelectedListener(new PlaceSelectionListener() {
+            @Override
+            public void onPlaceSelected(@NonNull Place place) {
+                try {
+                    // Get info about the selected place
+                    Log.i("PlaceSelected", "Place: " + place.getName() + ", " + place.getId());
 
-                        // If you need to move the map to the selected place
-                        if (place.getLatLng() != null && map != null) {
-                            map.animateCamera(CameraUpdateFactory.newLatLngZoom(
-                                    place.getLatLng(), 15f));
-                            map.addMarker(new MarkerOptions().position(place.getLocation()));
+                    // If you need to move the map to the selected place
+                    if (place.getLatLng() != null && map != null) {
+                        map.animateCamera(CameraUpdateFactory.newLatLngZoom(
+                                place.getLatLng(), 15f));
 
-                            endPoint = place.getId();
-                            checkAndFetchRoute();
-                        }
-                    } catch (Exception e) {
-                        Log.e("PlaceError", "Error processing selected place", e);
+                        Marker marker = map.addMarker(new MarkerOptions().position(place.getLocation()));
+                        marker.setTag(place.getId());
+
+                        endPoint = place.getId();
+                        checkAndFetchRoute();
                     }
+                } catch (Exception e) {
+                    Log.e("PlaceError", "Error processing selected place", e);
                 }
+            }
 
-                @Override
-                public void onError(@NonNull Status status) {
-                    // Handle the error properly
-                    Log.e("PlaceError", "An error occurred: " + status);
-                    Toast.makeText(MainActivity.this,
-                            "Place selection failed: " + status.getStatusMessage(),
-                            Toast.LENGTH_SHORT).show();
-                }
-            });
+            @Override
+            public void onError(@NonNull Status status) {
+                // Handle the error properly
+                Log.e("PlaceError", "An error occurred: " + status);
+                Toast.makeText(MainActivity.this,
+                        "Place selection failed: " + status.getStatusMessage(),
+                        Toast.LENGTH_SHORT).show();
+            }
+        });
 
-            // Optional: Set hint text
-            autocompleteFragment.setHint("Search for a place");
-
-
+        // Optional: Set hint text
+        autocompleteFragment2.setHint("Destination...");
 
 
     }
@@ -246,15 +276,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         Log.d("JSON response", "onResponse: JSON");
 
 
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                drawRouteOnMap(polylineEncoded);
 
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    drawRouteOnMap(polylineEncoded);
 
-
-                                }
-                            });
+                            }
+                        });
 
                     } catch (JSONException e) {
                         Log.e("RouteError", "JSON parsing error", e);
@@ -263,7 +292,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
     }
-
 
 
     private void drawRouteOnMap(String encodedPolyline) {
@@ -278,10 +306,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 .addAll(path)
                 .color(Color.BLUE)
                 .width(10f)
-                        .geodesic(true);
+                .geodesic(true);
 
         map.clear();
         map.addPolyline(currentPolyline);
+
+        Marker marker = map.addMarker(new MarkerOptions().position(path.get(0)));
+        marker.setTag(startingPoint);
+
+        Marker marker2 = map.addMarker(new MarkerOptions().position(path.get(path.size()-1)));
+        marker.setTag(endPoint);
 
         LatLngBounds.Builder boundsBuilder = new LatLngBounds.Builder();
         for (LatLng point : path) {
@@ -293,8 +327,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngBounds(bounds, padding);
         map.animateCamera(cameraUpdate);
         findNearbyGasStations(path.get(0), "Gas Station");
-        findNearbyGasStations(path.get(path.size()/2), "Gas Station");
-        findNearbyGasStations(path.get(path.size()-1), "Gas Station");
+        findNearbyGasStations(path.get(path.size() / 2), "Gas Station");
+        findNearbyGasStations(path.get(path.size() - 1), "Gas Station");
     }
 
     private void checkAndFetchRoute() {
@@ -305,12 +339,27 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
 
-
-
-
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap) {
         map = googleMap;
+
+
+        map.setOnPolylineClickListener(this);
+        map.setOnPolygonClickListener(this);
+        map.setOnMarkerClickListener(this);
+
+        // If you want to handle general map clicks, add this:
+        map.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+            @Override
+            public void onMapClick(@NonNull LatLng latLng) {
+                // Handle map click here
+                Toast.makeText(MainActivity.this,
+                        "Map clicked at: " + latLng.latitude + ", " + latLng.longitude,
+                        Toast.LENGTH_SHORT).show();
+
+                //Glide.with(this).load(uri).apply(requestOptions).into(binding.imageView);
+            }
+        });
 
     }
 
@@ -360,13 +409,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             double lat = loc.getDouble("lat");
                             double lng = loc.getDouble("lng");
                             String name = place.getString("name");
+                            String id = place.getString("place_id");
 
                             LatLng stationLatLng = new LatLng(lat, lng);
 
                             runOnUiThread(() -> {
-                                map.addMarker(new MarkerOptions()
+                                Marker marker = map.addMarker(new MarkerOptions()
                                         .position(stationLatLng)
                                         .title(label + ": " + name));
+                                assert marker != null;
+                                marker.setTag(id);
+
                             });
                         }
 
@@ -379,4 +432,105 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
 
+    @Override
+    public boolean onMarkerClick(@NonNull Marker marker) {
+        String placeId = (String) marker.getTag();
+        if (placeId == null) {
+            binding.imageView.setVisibility(View.GONE);
+            return false;
+        }
+
+        /* Show Images */
+        fetchPlaceDetailsAndPhoto(placeId);
+
+
+        binding.placeCardView.setVisibility(View.VISIBLE);
+        binding.imageView2.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                binding.placeCardView.setVisibility(View.GONE);
+            }
+        });
+
+        return true;
+
+    }
+
+
+    private void fetchPlaceDetailsAndPhoto(String placeId) {
+        // Specify the fields to return. Include PHOTO_METADATAS.
+        List<Place.Field> placeFields = Arrays.asList(
+                Place.Field.ID,
+                Place.Field.NAME,
+                Place.Field.PHOTO_METADATAS
+        );
+
+        // Construct a request object, passing the place ID and fields array.
+        FetchPlaceRequest request = FetchPlaceRequest.newInstance(placeId, placeFields);
+        // Call the PlacesClient and handle the response.
+        placesClient.fetchPlace(request)
+                .addOnSuccessListener(new OnSuccessListener<FetchPlaceResponse>() {
+                    @Override
+                    public void onSuccess(FetchPlaceResponse response) {
+                        Place place = response.getPlace();
+                        List<PhotoMetadata> photoMetadataList = place.getPhotoMetadatas();
+
+                        if (photoMetadataList != null && !photoMetadataList.isEmpty()) {
+                            // Get the first photo metadata from the list
+                            PhotoMetadata photoMetadata = photoMetadataList.get(0);
+                            // Use this photoMetadata to fetch the photo URI
+                            fetchPhotoUri(photoMetadata);
+                        } else {
+                            Log.d("Error", "No photo metadata available for this place.");
+                            // Handle case where no photo metadata is available
+                        }
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception exception) {
+                        Log.e("error", "Place fetch failed: " + exception.getMessage());
+                        // Handle the error
+                        binding.placeCardView.setVisibility(View.GONE);
+                    }
+                });
+    }
+
+    private void fetchPhotoUri(PhotoMetadata photoMetadata) {
+        // Construct a request object for fetching the photo URI
+        FetchResolvedPhotoUriRequest photoRequest = FetchResolvedPhotoUriRequest.builder(photoMetadata)
+                .setMaxWidth(500) // Optional: Set max width
+                .setMaxHeight(300) // Optional: Set max height
+                .build();
+
+        // Call the PlacesClient and handle the response.
+        placesClient.fetchResolvedPhotoUri(photoRequest)
+                .addOnSuccessListener(new OnSuccessListener<FetchResolvedPhotoUriResponse>() {
+                    @Override
+                    public void onSuccess(FetchResolvedPhotoUriResponse fetchResolvedPhotoUriResponse) {
+                        Uri uri = fetchResolvedPhotoUriResponse.getUri();
+                        // Use the URI to load the image into an ImageView using an image loading library
+                        if (uri != null) {
+                            Glide.with(MainActivity.this) // Use your Activity context
+                                    .load(uri)
+                                    .into(binding.imageView); // Your ImageView
+                        } else {
+                            Log.d("TAG", "Photo URI is null.");
+                            // Handle case where URI is null
+                        }
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception exception) {
+                        Log.e("TAG", "Photo fetch failed: " + exception.getMessage());
+                        // Handle the error
+                        binding.placeCardView.setVisibility(View.GONE);
+                    }
+                });
+
+
+    }
+
 }
+
