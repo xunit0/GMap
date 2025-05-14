@@ -319,11 +319,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         map.clear();
         map.addPolyline(currentPolyline);
 
-        Marker marker = map.addMarker(new MarkerOptions().position(path.get(0)));
-        marker.setTag(startingPoint);
+        Marker startingMarker = map.addMarker(new MarkerOptions().position(path.get(0)));
+        startingMarker.setTag(startingPoint);
 
-        Marker marker2 = map.addMarker(new MarkerOptions().position(path.get(path.size()-1)));
-        marker.setTag(endPoint);
+        Marker endPointMarker = map.addMarker(new MarkerOptions().position(path.get(path.size()-1)));
+        endPointMarker.setTag(endPoint);
 
         LatLngBounds.Builder boundsBuilder = new LatLngBounds.Builder();
         for (LatLng point : path) {
