@@ -2,6 +2,7 @@ package com.example.myapplication;
 
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.graphics.drawable.Icon;
 import android.net.Uri;
 import android.net.http.UrlRequest;
 import android.os.Bundle;
@@ -49,6 +50,7 @@ import com.google.android.libraries.places.widget.AutocompleteSupportFragment;
 import com.google.android.libraries.places.widget.listener.PlaceSelectionListener;
 import com.google.maps.android.PolyUtil;
 import com.google.maps.android.SphericalUtil;
+import com.example.myapplication.R.drawable.*;
 
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
@@ -214,6 +216,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     }
 
+
+    /* Functions to retrieve route data and print on the map */
+    private void checkAndFetchRoute() {
+        if (startingPoint != null && endPoint != null) {
+            RequestBody body = getFormBody(startingPoint, endPoint);
+            fetchRoute(body);
+        }
+    }
     private RequestBody getFormBody(String origin, String destination) {
 
 
@@ -238,7 +248,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
 
     }
-
 
     private void fetchRoute(RequestBody body) {
         OkHttpClient client = new OkHttpClient();
@@ -293,7 +302,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
     }
 
-
     private void drawRouteOnMap(String encodedPolyline) {
         List<LatLng> path = PolyUtil.decode(encodedPolyline);
 
@@ -331,12 +339,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         findNearbyGasStations(path.get(path.size() - 1), "Gas Station");
     }
 
-    private void checkAndFetchRoute() {
-        if (startingPoint != null && endPoint != null) {
-            RequestBody body = getFormBody(startingPoint, endPoint);
-            fetchRoute(body);
-        }
-    }
+
 
 
     @Override
@@ -436,15 +439,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public boolean onMarkerClick(@NonNull Marker marker) {
         String placeId = (String) marker.getTag();
         if (placeId == null) {
-            binding.imageView.setVisibility(View.GONE);
+            binding.placeCardView.setVisibility(View.GONE);
             return false;
         }
 
-        /* Show Images */
-        fetchPlaceDetailsAndPhoto(placeId);
-
-
+        /* CardView for place details */
         binding.placeCardView.setVisibility(View.VISIBLE);
+        fetchPlaceDetailsAndPhoto(placeId);
         binding.imageView2.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -461,7 +462,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         // Specify the fields to return. Include PHOTO_METADATAS.
         List<Place.Field> placeFields = Arrays.asList(
                 Place.Field.ID,
-                Place.Field.NAME,
+                Place.Field.DISPLAY_NAME,
+                Place.Field.ADR_FORMAT_ADDRESS,
                 Place.Field.PHOTO_METADATAS
         );
 
@@ -475,6 +477,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         Place place = response.getPlace();
                         List<PhotoMetadata> photoMetadataList = place.getPhotoMetadatas();
 
+                        String addy = place.getAdrFormatAddress();
+                        String pla = place.getDisplayName();
+
+                        if (addy != null){
+                            binding.addressView.setText(addy);
+                        }
+                        if (pla != null){
+                            binding.displayNameView.setText(pla);
+                        }
+
                         if (photoMetadataList != null && !photoMetadataList.isEmpty()) {
                             // Get the first photo metadata from the list
                             PhotoMetadata photoMetadata = photoMetadataList.get(0);
@@ -483,6 +495,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         } else {
                             Log.d("Error", "No photo metadata available for this place.");
                             // Handle case where no photo metadata is available
+                            Icon icon = Icon.createWithResource(getApplicationContext(), android.R.drawable.ic_menu_report_image);
+                            binding.imageView.setImageIcon(icon);
                         }
                     }
                 })
