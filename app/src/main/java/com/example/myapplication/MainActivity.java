@@ -380,10 +380,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 
 
+    /**
+     * Manipulates the map when it's available.
+     * This callback is triggered when the map is ready to be used.
+     */
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap) {
         map = googleMap;
-        //map.setMapType(GoogleMap.MAP_TYPE_TERRAIN);
+        map.setMapType(GoogleMap.MAP_TYPE_TERRAIN);
 
 
         // Turn on the My Location layer and the related control on the map.
