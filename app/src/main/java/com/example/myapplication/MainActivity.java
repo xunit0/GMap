@@ -36,6 +36,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
@@ -98,8 +99,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     // A default location (Sydney, Australia) and default zoom to use when location permission is
     // not granted.
-    private final LatLng defaultLocation = new LatLng(-33.8523341, 151.2106085);
-    private static final int DEFAULT_ZOOM = 15;
+    private final LatLng defaultLocation = new LatLng(39.8283, -98.5795);
+    private static final int DEFAULT_ZOOM = 5;
     private static final int PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 1;
     private boolean locationPermissionGranted;
 
@@ -387,7 +388,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap) {
         map = googleMap;
-        map.setMapType(GoogleMap.MAP_TYPE_TERRAIN);
+        map.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
 
 
         // Turn on the My Location layer and the related control on the map.
@@ -396,6 +397,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         getLocationPermission();
         // Get the current location of the device and set the position of the map.
         getDeviceLocation();
+        updateLocationUI();
+
+        CameraPosition cameraPosition = new CameraPosition.Builder()
+                .target(defaultLocation)
+                .zoom(19)
+                .bearing(0)
+                .tilt(45)
+                .build();
+        map.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
 
         map.setOnPolylineClickListener(this);
         map.setOnPolygonClickListener(this);
@@ -665,9 +675,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             // Set the map's camera position to the current location of the device.
                             lastKnownLocation = task.getResult();
                             if (lastKnownLocation != null) {
+                                CameraPosition cameraPosition = new CameraPosition.Builder()
+                                        .target(new LatLng(lastKnownLocation.getLatitude(),
+                                                lastKnownLocation.getLongitude()))
+                                        .zoom(map.getMaxZoomLevel())
+                                        .bearing(0)
+                                        .tilt(45)
+                                        .build();
+                                map.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
                                 map.moveCamera(CameraUpdateFactory.newLatLngZoom(
                                         new LatLng(lastKnownLocation.getLatitude(),
-                                                lastKnownLocation.getLongitude()), DEFAULT_ZOOM));
+                                                lastKnownLocation.getLongitude()), 18));
                             }
                         } else {
                             Log.d(TAG, "Current location is null. Using defaults.");
