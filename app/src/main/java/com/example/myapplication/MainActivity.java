@@ -388,7 +388,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap) {
         map = googleMap;
-        map.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
+        map.setMapType(GoogleMap.MAP_TYPE_HYBRID);
 
 
         // Turn on the My Location layer and the related control on the map.
