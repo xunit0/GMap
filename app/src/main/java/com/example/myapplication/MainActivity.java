@@ -703,3 +703,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 }
 
+
+/*
+* {
+  "session": "AJVsH2wBCPuMtfGhJToX4t-eB8NByEQLpobDeR5Mm23rVDM0MD98F2Mgios9OfejA5keerD2ITVEJ3pd5ABsNTxT6A",
+  "expiry": "1749683668",
+  "tileWidth": 512,
+  "imageFormat": "jpeg",
+  "tileHeight": 512
+}
+* */
