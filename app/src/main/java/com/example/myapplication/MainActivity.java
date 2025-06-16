@@ -69,8 +69,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.net.URI;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -82,6 +80,7 @@ import okhttp3.Callback;
 import okhttp3.FormBody;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
+import okhttp3.HttpUrl;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
@@ -94,8 +93,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private String endPoint, startingPoint;
     private PolylineOptions currentPolyline;
     private String apiKey = BuildConfig.API_KEY;
+    private String sessionKey;
     private PlacesClient placesClient;
     private FusedLocationProviderClient fusedLocationProviderClient;
+    private final OkHttpClient client = new OkHttpClient();
 
     // A default location (Sydney, Australia) and default zoom to use when location permission is
     // not granted.
@@ -289,7 +290,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void fetchRoute(RequestBody body) {
-        OkHttpClient client = new OkHttpClient();
+
 
         String url = "https://routes.googleapis.com/directions/v2:computeRoutes";
 
@@ -701,8 +702,53 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             Log.e("Exception: %s", e.getMessage(), e);
         }
     }
-}
 
+
+    private void drawTerrainTile(){
+
+        getSessionKey();
+
+        Request request = new Request.Builder()
+                .url("https://tile.googleapis.com/v1/2dtiles/z/x/y")
+                .
+
+    }
+
+
+    private void getSessionKey(){
+        String json = "{ \"mapType\": \"terrain\", \"language\": \"en-US\", \"region\": \"US\", \"layerTypes\": [\"layerRoadmap\"] }";
+
+        RequestBody body = RequestBody.create(json, MediaType.parse("application/json"));
+
+        Request request = new Request.Builder()
+                .url("https://tile.googleapis.com/v1/createSession?key=" + apiKey)
+                .post(body)
+                .addHeader("Content-Type", "application/json")
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                e.printStackTrace();
+            }
+
+            @Override
+            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                if (response.isSuccessful()) {
+                    String responseBody = response.body().string();
+                    Log.d("JSON response", "onResponse: JSON");
+                    try {
+                        JSONObject jsonObject = new JSONObject(responseBody);
+                        sessionKey = jsonObject.getString("session");
+
+                    } catch (JSONException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+
+            }
+        });
+    }
 
 /*
 * {
@@ -713,3 +759,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
   "tileHeight": 512
 }
 * */
+
+}
+
