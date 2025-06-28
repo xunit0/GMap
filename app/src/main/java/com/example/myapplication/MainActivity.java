@@ -127,6 +127,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         EdgeToEdge.enable(this);
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         View view = binding.getRoot();
+        getSessionKey();
 
         setContentView(view);
 
@@ -704,15 +705,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
 
-    private void drawTerrainTile(){
-
-        getSessionKey();
-
-        Request request = new Request.Builder()
-                .url("https://tile.googleapis.com/v1/2dtiles/z/x/y")
-                .
-
-    }
+//    private void drawTerrainTile(){
+//
+//        getSessionKey();
+//
+//        Request request = new Request.Builder()
+//                .url("https://tile.googleapis.com/v1/2dtiles/z/x/y")
+//                .
+//
+//    }
 
 
     private void getSessionKey(){
@@ -729,7 +730,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                e.printStackTrace();
+                Log.e("RouteError", "Request failed", e);
             }
 
             @Override
