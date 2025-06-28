@@ -127,7 +127,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         EdgeToEdge.enable(this);
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         View view = binding.getRoot();
-        getSessionKey();
+        initializeSessionKey();
 
         setContentView(view);
 
@@ -707,7 +707,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
 //    private void drawTerrainTile(){
 //
-//        getSessionKey();
+//
 //
 //        Request request = new Request.Builder()
 //                .url("https://tile.googleapis.com/v1/2dtiles/z/x/y")
@@ -716,7 +716,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 //    }
 
 
-    private void getSessionKey(){
+    private void initializeSessionKey(){
         String json = "{ \"mapType\": \"terrain\", \"language\": \"en-US\", \"region\": \"US\", \"layerTypes\": [\"layerRoadmap\"] }";
 
         RequestBody body = RequestBody.create(json, MediaType.parse("application/json"));
@@ -741,7 +741,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     try {
                         JSONObject jsonObject = new JSONObject(responseBody);
                         sessionKey = jsonObject.getString("session");
-
+                        Log.d("session key", sessionKey);
                     } catch (JSONException e) {
                         throw new RuntimeException(e);
                     }
